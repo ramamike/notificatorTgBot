@@ -56,6 +56,7 @@
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/com.vdurmont/emoji-java -->
+<!--		https://github.com/vdurmont/emoji-java/blob/master/EMOJIS.md-->
 		<dependency>
 			<groupId>com.vdurmont</groupId>
 			<artifactId>emoji-java</artifactId>

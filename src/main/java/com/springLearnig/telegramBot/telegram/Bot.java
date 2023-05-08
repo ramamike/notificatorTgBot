@@ -3,11 +3,14 @@ package com.springLearnig.telegramBot.telegram;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.model.User;
+import com.springLearnig.telegramBot.telegram.service.BotService;
 import com.vdurmont.emoji.EmojiParser;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethodMessage;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -30,6 +33,7 @@ import java.util.List;
 public class Bot extends TelegramLongPollingBot {
 //   WebHookBot..hosting...ssl..server with static IP
 
+    private BotService service;
     private final BotConfig botConfig;
 
     private IUserRepository userRepository;
@@ -38,7 +42,8 @@ public class Bot extends TelegramLongPollingBot {
     private final String YES_BUTTON = "YES_BUTTON";
     private final String NO_BUTTON = "NO_BUTTON";
 
-    public Bot(BotConfig botConfig, IUserRepository userRepository) {
+    public Bot(BotService service,BotConfig botConfig, IUserRepository userRepository) {
+        this.service=service;
         this.botConfig = botConfig;
         this.userRepository = userRepository;
 
@@ -88,46 +93,31 @@ public class Bot extends TelegramLongPollingBot {
 //        });
     }
 
+    private void send(BotApiMethodMessage messageToSend){
+        try {
+            execute(messageToSend);
+        } catch (TelegramApiException e) {
+            log.error("Sending message error: ", e);
+        }
+    }
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
-            String messageCommand = messageText;
-            String textInMessage = messageText;
-            if (messageText.contains(" ")) {
-                messageCommand = messageText.substring(0, messageText.indexOf(" "));
-                textInMessage = messageText.substring(messageText.indexOf(" "));
-            }
-            long chatId = update.getMessage().getChatId();
-            switch (messageCommand) {
-                case "/start":
-                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                    break;
-                case "/help":
-                    startCommandReceived(chatId, HELP_TEXT);
-                    break;
-                case "/register":
-                    register(chatId);
-                    break;
-                case "/send":
-                    send(textInMessage, userRepository.findAll());
-                    break;
-                default:
-                    sendMessage(chatId, "Sorry, command doesn't recognised");
-            }
-
-
-        } else if (update.hasCallbackQuery()) {
-            String callBackData = update.getCallbackQuery().getData();
-            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-            Long chatId = update.getCallbackQuery().getMessage().getChatId();
-
-            if (callBackData.equals(YES_BUTTON)) {
-                sendEditMessageText(chatId, messageId, "You pressed YES");
-            } else if (callBackData.equals(NO_BUTTON)) {
-                sendEditMessageText(chatId, messageId, "You pressed NO");
-            }
+            send(service.onUpdateReceivedMessage(update));
         }
+
+
+//        } else if (update.hasCallbackQuery()) {
+//            String callBackData = update.getCallbackQuery().getData();
+//            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+//            Long chatId = update.getCallbackQuery().getMessage().getChatId();
+//
+//            if (callBackData.equals(YES_BUTTON)) {
+//                sendEditMessageText(chatId, messageId, "You pressed YES");
+//            } else if (callBackData.equals(NO_BUTTON)) {
+//                sendEditMessageText(chatId, messageId, "You pressed NO");
+//            }
+//        }
     }
 
     private void send(String messageText, Iterable<User> users) {
