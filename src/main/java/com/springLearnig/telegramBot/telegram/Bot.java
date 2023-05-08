@@ -5,24 +5,19 @@ import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.model.User;
 import com.springLearnig.telegramBot.telegram.service.BotService;
 import com.vdurmont.emoji.EmojiParser;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethodMessage;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -39,8 +34,6 @@ public class Bot extends TelegramLongPollingBot {
     private IUserRepository userRepository;
 
     private final String HELP_TEXT = "Choose command from menu";
-    private final String YES_BUTTON = "YES_BUTTON";
-    private final String NO_BUTTON = "NO_BUTTON";
 
     public Bot(BotService service,BotConfig botConfig, IUserRepository userRepository) {
         this.service=service;
@@ -50,20 +43,8 @@ public class Bot extends TelegramLongPollingBot {
         // Set Owner
         userRepository.findFirstByOrderById().ifPresent(u -> botConfig.setOwnerId(u.getId()));
 
-        // Execute menu
-        List<BotCommand> commandList = new ArrayList<>();
-        commandList.add(new
-                BotCommand("/start", "get a welcome message"));
-        commandList.add(new
-                BotCommand("/mydata", "get your data stored"));
-        commandList.add(new
-                BotCommand("/deletedata", "delete your data stored"));
-        commandList.add(new
-                BotCommand("/help", "how to use"));
-        commandList.add(new
-                BotCommand("/settings", "set your preferences"));
         try {
-            this.execute(new SetMyCommands(commandList, new BotCommandScopeDefault(), null));
+            this.execute(new SetMyCommands(botConfig.getCommandList(), new BotCommandScopeDefault(), null));
         } catch (
                 TelegramApiException e) {
             log.error("Execute menu creation error :", e);
@@ -84,116 +65,31 @@ public class Bot extends TelegramLongPollingBot {
 
     @Scheduled(cron = "${cron.scheduler}")
     private void sendNotifications() {
+        String textToSend = EmojiParser.parseToUnicode("Spam");
+        userRepository.findAll().forEach(user -> {
+            SendMessage message = SendMessage.builder()
+                    .chatId(user.getChatId())
+                    .text(textToSend)
+                    .build();
+            try {
+                execute(message);
+            } catch (TelegramApiException e) {
+               log.error("Execution message error for user: "+ user.getFirstName());
+            }
+        });
 
-//        var notifications = notificationRepository.findAll();
-//        var users = userRepository.findAll();
-//
-//        notifications.forEach(notification -> {
-//            send(notification.getText(), users);
-//        });
     }
 
-    private void send(BotApiMethodMessage messageToSend){
-        try {
-            execute(messageToSend);
-        } catch (TelegramApiException e) {
-            log.error("Sending message error: ", e);
-        }
-    }
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            send(service.onUpdateReceivedMessage(update));
-        }
-
-
-//        } else if (update.hasCallbackQuery()) {
-//            String callBackData = update.getCallbackQuery().getData();
-//            Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-//            Long chatId = update.getCallbackQuery().getMessage().getChatId();
-//
-//            if (callBackData.equals(YES_BUTTON)) {
-//                sendEditMessageText(chatId, messageId, "You pressed YES");
-//            } else if (callBackData.equals(NO_BUTTON)) {
-//                sendEditMessageText(chatId, messageId, "You pressed NO");
-//            }
-//        }
-    }
-
-    private void send(String messageText, Iterable<User> users) {
-        String textToSend = EmojiParser.parseToUnicode(messageText);
-        users.forEach(user -> {
-            sendMessage(user.getId(), textToSend);
-        });
-    }
-
-    private void registerUser(Message message) {
-        if (userRepository.findById(message.getChatId()).isEmpty()) {
-            var chatId = message.getChatId();
-            var chat = message.getChat();
-            User user = User.builder()
-                    .id(chatId)
-                    .firstName(chat.getFirstName())
-                    .lastName(chat.getLastName())
-                    .userName(chat.getUserName())
-                    .timestamp(new Timestamp(System.currentTimeMillis()))
-                    .build();
-            userRepository.save(user);
-            log.info("New user: " + user);
-        }
-    }
-
-    private void startCommandReceived(long chatId, String name) {
-        String answer = EmojiParser.parseToUnicode("Hi, " + name + ":blush:");
-        sendMessage(chatId, answer);
-    }
-
-    private void sendMessage(long chatId, String messageToSend) {
-        SendMessage message = SendMessage.builder()
-                .chatId(chatId)
-                .text(messageToSend)
-                .replyMarkup(addKeyboardMarkup())
-                .build();
-
         try {
-            execute(message);
+            if (update.hasMessage() && update.getMessage().hasText()) {
+                execute(service.onUpdateReceivedMessage(update));
+            } else if (update.hasCallbackQuery()) {
+                execute(service.onUpdateReceivedCallBack(update));
+            }
         } catch (TelegramApiException e) {
-            log.error("Sending message error: ", e);
-        }
-
-    }
-
-    private ReplyKeyboardMarkup addKeyboardMarkup() {
-
-        List<KeyboardRow> keyboardRows = new ArrayList<>();
-
-        KeyboardRow keyboardRow_1 = new KeyboardRow();
-        keyboardRow_1.add("weather");
-        keyboardRow_1.add("random joke");
-
-        KeyboardRow keyboardRow_2 = new KeyboardRow();
-        keyboardRow_2.add("register");
-        keyboardRow_2.add("check my data");
-        keyboardRow_2.add("delete my data");
-
-        keyboardRows.add(keyboardRow_1);
-        keyboardRows.add(keyboardRow_2);
-
-        return ReplyKeyboardMarkup.builder()
-                .keyboard(keyboardRows)
-                .build();
-    }
-
-    private void sendEditMessageText(Long chatId, Integer messageId, String text) {
-        EditMessageText editMessageText = new EditMessageText();
-        editMessageText.setChatId(chatId);
-        editMessageText.setText(text);
-        editMessageText.setMessageId(messageId);
-        try {
-            execute(editMessageText);
-        } catch (TelegramApiException e) {
-            log.error("Sending message error: ", e);
+            log.error("Execution message error: ", e);
         }
     }
-
 }

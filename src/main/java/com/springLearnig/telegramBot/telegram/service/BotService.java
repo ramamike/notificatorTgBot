@@ -2,28 +2,32 @@ package com.springLearnig.telegramBot.telegram.service;
 
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
+import com.springLearnig.telegramBot.telegram.model.User;
 import com.vdurmont.emoji.EmojiManager;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.springLearnig.telegramBot.telegram.Constants.CMD_START;
+import static com.springLearnig.telegramBot.telegram.Constants.BTN_YES_REGISTER;
+import static com.springLearnig.telegramBot.telegram.Constants.BTN_NO_REGISTER;
 
 @Service
 @Slf4j
 public class BotService {
 
     private final String HELP_TEXT = "Choose command from menu";
-    private final String YES_BUTTON = "YES_BUTTON";
-    private final String NO_BUTTON = "NO_BUTTON";
-
     private final BotConfig botConfig;
 
     private IUserRepository userRepository;
@@ -48,11 +52,11 @@ public class BotService {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         switch (messageCommand) {
-            case "/start":
+            case CMD_START:
                 String text = EmojiParser.parseToUnicode("Hi, " + name + ":blush:");
                 if (!userRepository.existsByChatId(chatId)) {
                     text = text + "\nDo you want to register?";
-                    message.setReplyMarkup(getKeyboardYesNo());
+                    message.setReplyMarkup(getKeyboardYesNo(BTN_YES_REGISTER, BTN_NO_REGISTER));
                 }
                 message.setText(text);
                 break;
@@ -72,18 +76,45 @@ public class BotService {
         return message;
     }
 
-    private InlineKeyboardMarkup getKeyboardYesNo() {
+
+    public EditMessageText onUpdateReceivedCallBack(Update update) {
+
+        String callBackData = update.getCallbackQuery().getData();
+        Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        Message message = update.getCallbackQuery().getMessage();
+
+        EditMessageText editMessageText = new EditMessageText();
+        editMessageText.setChatId(chatId);
+        editMessageText.setMessageId(messageId);
+
+        switch (callBackData) {
+            case BTN_YES_REGISTER:
+                registerUser(message);
+                editMessageText.setText("You are registered as " + message.getChat().getFirstName());
+                break;
+            case BTN_NO_REGISTER:
+                editMessageText.setText(EmojiParser.parseToUnicode("Sorry, there is no service without registration" + ":thinking:"));
+                break;
+            default:
+                editMessageText.setText(EmojiParser.parseToUnicode("Sorry, callback doesn't recognised, try again" + ":no_mouth:"));
+        }
+        return editMessageText;
+    }
+
+
+    private InlineKeyboardMarkup getKeyboardYesNo(String callBackForYes, String callBackForNo) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
         List<InlineKeyboardButton> keyboardButtons = new ArrayList<>();
 
         var button_Yes = new InlineKeyboardButton();
         button_Yes.setText("Yes");
-        button_Yes.setCallbackData(YES_BUTTON);
+        button_Yes.setCallbackData(callBackForYes);
 
         var button_No = new InlineKeyboardButton();
         button_No.setText("No");
-        button_No.setCallbackData(NO_BUTTON);
+        button_No.setCallbackData(callBackForNo);
 
         keyboardButtons.add(button_Yes);
         keyboardButtons.add(button_No);
@@ -95,5 +126,20 @@ public class BotService {
         return inlineKeyboardMarkup;
     }
 
+    private void registerUser(Message message) {
+        if (!userRepository.existsByChatId(message.getChatId())) {
+            var chatId = message.getChatId();
+            var chat = message.getChat();
+            User user = User.builder()
+                    .chatId(chatId)
+                    .firstName(chat.getFirstName())
+                    .lastName(chat.getLastName())
+                    .userName(chat.getUserName())
+                    .timestamp(new Timestamp(System.currentTimeMillis()))
+                    .build();
+            userRepository.save(user);
+            log.info("New user: " + user);
+        }
+    }
 
 }
