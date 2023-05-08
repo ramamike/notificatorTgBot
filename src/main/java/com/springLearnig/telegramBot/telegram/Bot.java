@@ -127,41 +127,6 @@ public class Bot extends TelegramLongPollingBot {
         });
     }
 
-    private void register(Long chatId) {
-
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Do you want to register?");
-
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
-        List<InlineKeyboardButton> keyboardButtons = new ArrayList<>();
-
-        var button_1 = new InlineKeyboardButton();
-        button_1.setText("Yes");
-        button_1.setCallbackData(YES_BUTTON);
-
-        var button_2 = new InlineKeyboardButton();
-        button_2.setText("No");
-        button_2.setCallbackData(NO_BUTTON);
-
-        keyboardButtons.add(button_1);
-        keyboardButtons.add(button_2);
-
-        keyboardRows.add(keyboardButtons);
-
-        inlineKeyboardMarkup.setKeyboard(keyboardRows);
-
-        message.setReplyMarkup(inlineKeyboardMarkup);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("Sending message error: ", e);
-        }
-
-    }
-
     private void registerUser(Message message) {
         if (userRepository.findById(message.getChatId()).isEmpty()) {
             var chatId = message.getChatId();

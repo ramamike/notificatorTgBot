@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -46,7 +49,12 @@ public class BotService {
         message.setChatId(chatId);
         switch (messageCommand) {
             case "/start":
-                message.setText(EmojiParser.parseToUnicode("Hi, " + name + ":blush:"));
+                String text = EmojiParser.parseToUnicode("Hi, " + name + ":blush:");
+                if (!userRepository.existsByChatId(chatId)) {
+                    text = text + "\nDo you want to register?";
+                    message.setReplyMarkup(getKeyboardYesNo());
+                }
+                message.setText(text);
                 break;
 //                case "/help":
 //                    startCommandReceived(chatId, HELP_TEXT);
@@ -63,5 +71,29 @@ public class BotService {
 
         return message;
     }
+
+    private InlineKeyboardMarkup getKeyboardYesNo() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
+        List<InlineKeyboardButton> keyboardButtons = new ArrayList<>();
+
+        var button_Yes = new InlineKeyboardButton();
+        button_Yes.setText("Yes");
+        button_Yes.setCallbackData(YES_BUTTON);
+
+        var button_No = new InlineKeyboardButton();
+        button_No.setText("No");
+        button_No.setCallbackData(NO_BUTTON);
+
+        keyboardButtons.add(button_Yes);
+        keyboardButtons.add(button_No);
+
+        keyboardRows.add(keyboardButtons);
+
+        inlineKeyboardMarkup.setKeyboard(keyboardRows);
+
+        return inlineKeyboardMarkup;
+    }
+
 
 }
