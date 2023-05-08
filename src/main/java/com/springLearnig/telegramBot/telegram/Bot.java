@@ -1,8 +1,8 @@
-package com.springLearnig.telegramBot.service;
+package com.springLearnig.telegramBot.telegram;
 
-import com.springLearnig.telegramBot.config.BotConfig;
-import com.springLearnig.telegramBot.model.IUserRepository;
-import com.springLearnig.telegramBot.model.User;
+import com.springLearnig.telegramBot.telegram.config.BotConfig;
+import com.springLearnig.telegramBot.telegram.model.IUserRepository;
+import com.springLearnig.telegramBot.telegram.model.User;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,8 +27,8 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class TelegramBotService extends TelegramLongPollingBot {
-//   TelegranBotHook...
+public class Bot extends TelegramLongPollingBot {
+//   WebHookBot..hosting...ssl..server with static IP
 
     private final BotConfig botConfig;
 
@@ -38,20 +38,32 @@ public class TelegramBotService extends TelegramLongPollingBot {
     private final String YES_BUTTON = "YES_BUTTON";
     private final String NO_BUTTON = "NO_BUTTON";
 
-    public TelegramBotService(BotConfig botConfig, IUserRepository userRepository) {
+    public Bot(BotConfig botConfig, IUserRepository userRepository) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
+
+        // Set Owner
+        userRepository.findFirstByOrderById().ifPresent(u -> botConfig.setOwnerId(u.getId()));
+
+        // Execute menu
         List<BotCommand> commandList = new ArrayList<>();
-        commandList.add(new BotCommand("/start", "get a welcome message"));
-        commandList.add(new BotCommand("/mydata", "get your data stored"));
-        commandList.add(new BotCommand("/deletedata", "delete your data stored"));
-        commandList.add(new BotCommand("/help", "how to use"));
-        commandList.add(new BotCommand("/settings", "set your preferences"));
+        commandList.add(new
+                BotCommand("/start", "get a welcome message"));
+        commandList.add(new
+                BotCommand("/mydata", "get your data stored"));
+        commandList.add(new
+                BotCommand("/deletedata", "delete your data stored"));
+        commandList.add(new
+                BotCommand("/help", "how to use"));
+        commandList.add(new
+                BotCommand("/settings", "set your preferences"));
         try {
             this.execute(new SetMyCommands(commandList, new BotCommandScopeDefault(), null));
-        } catch (TelegramApiException e) {
+        } catch (
+                TelegramApiException e) {
             log.error("Execute menu creation error :", e);
         }
+
     }
 
     @Override
@@ -65,8 +77,8 @@ public class TelegramBotService extends TelegramLongPollingBot {
     }
 
 
-    @Scheduled(cron="${cron.scheduler}")
-    private void sendNotifications(){
+    @Scheduled(cron = "${cron.scheduler}")
+    private void sendNotifications() {
 
 //        var notifications = notificationRepository.findAll();
 //        var users = userRepository.findAll();
@@ -75,12 +87,13 @@ public class TelegramBotService extends TelegramLongPollingBot {
 //            send(notification.getText(), users);
 //        });
     }
+
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             String messageCommand = messageText;
-            String textInMessage=messageText;
+            String textInMessage = messageText;
             if (messageText.contains(" ")) {
                 messageCommand = messageText.substring(0, messageText.indexOf(" "));
                 textInMessage = messageText.substring(messageText.indexOf(" "));
@@ -88,7 +101,6 @@ public class TelegramBotService extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             switch (messageCommand) {
                 case "/start":
-                    registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     break;
                 case "/help":
@@ -157,6 +169,7 @@ public class TelegramBotService extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             log.error("Sending message error: ", e);
         }
+
     }
 
     private void registerUser(Message message) {

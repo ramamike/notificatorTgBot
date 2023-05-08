@@ -1,6 +1,6 @@
-package com.springLearnig.telegramBot.config;
+package com.springLearnig.telegramBot.telegram.config;
 
-import com.springLearnig.telegramBot.service.TelegramBotService;
+import com.springLearnig.telegramBot.telegram.Bot;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -11,16 +11,16 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 @Component
 public class BotInitializer {
 
-    private TelegramBotService botService;
+    private Bot bot;
 
-    public BotInitializer(TelegramBotService botService) {
-        this.botService = botService;
+    public BotInitializer(Bot bot) {
+        this.bot = bot;
     }
 
     @EventListener({ContextRefreshedEvent.class})
     public void init() throws TelegramApiException {
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
-        telegramBotsApi.registerBot(botService);
+        telegramBotsApi.registerBot(bot);
     }
 
 }

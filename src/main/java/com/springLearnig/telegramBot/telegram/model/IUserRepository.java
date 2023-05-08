@@ -1,7 +1,10 @@
-package com.springLearnig.telegramBot.model;
+package com.springLearnig.telegramBot.telegram.model;
 
 
 import org.springframework.data.repository.CrudRepository;
 
+import java.util.Optional;
+
 public interface IUserRepository extends CrudRepository<User, Long> {
+    Optional<User> findFirstByOrderById();
 }

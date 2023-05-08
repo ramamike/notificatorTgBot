@@ -1,4 +1,4 @@
-package com.springLearnig.telegramBot.model;
+package com.springLearnig.telegramBot.telegram.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,14 +30,4 @@ public class User {
 
     private Timestamp timestamp;
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                ", userName='" + userName + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
-    }
 }
