@@ -1,15 +1,16 @@
 package com.springLearnig.telegramBot.telegram.model;
 
+import com.springLearnig.telegramBot.subscriptions.model.Subscription;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -31,5 +32,13 @@ public class User {
     private String userName;
 
     private Timestamp timestamp;
+
+    @OneToMany(
+            fetch = FetchType.EAGER,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            mappedBy = "user"
+    )
+    private List<Subscription> subscriptions = new ArrayList<>();
 
 }

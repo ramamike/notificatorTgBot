@@ -1,9 +1,9 @@
 package com.springLearnig.telegramBot.telegram.service;
 
+import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.model.User;
-import com.vdurmont.emoji.EmojiManager;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.springLearnig.telegramBot.telegram.Constants.CMD_START;
 import static com.springLearnig.telegramBot.telegram.Constants.BTN_YES_REGISTER;
@@ -31,10 +30,12 @@ public class BotService {
     private final BotConfig botConfig;
 
     private IUserRepository userRepository;
+    private ISubscriptionRepository subscriptionRepository;
 
-    public BotService(BotConfig botConfig, IUserRepository userRepository) {
+    public BotService(BotConfig botConfig, IUserRepository userRepository, ISubscriptionRepository subscriptionRepository) {
         this.botConfig = botConfig;
         this.userRepository = userRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     public SendMessage onUpdateReceivedMessage(Update update) {

@@ -2,7 +2,6 @@ package com.springLearnig.telegramBot.telegram;
 
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
-import com.springLearnig.telegramBot.telegram.model.User;
 import com.springLearnig.telegramBot.telegram.service.BotService;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
@@ -11,17 +10,9 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 @Slf4j
@@ -65,17 +56,19 @@ public class Bot extends TelegramLongPollingBot {
 
     @Scheduled(cron = "${cron.scheduler}")
     private void sendNotifications() {
-        String textToSend = EmojiParser.parseToUnicode("Spam");
         userRepository.findAll().forEach(user -> {
-            SendMessage message = SendMessage.builder()
-                    .chatId(user.getChatId())
-                    .text(textToSend)
-                    .build();
-            try {
-                execute(message);
-            } catch (TelegramApiException e) {
-               log.error("Execution message error for user: "+ user.getFirstName());
-            }
+            user.getSubscriptions().forEach(subscription->{
+                SendMessage message = SendMessage.builder()
+                        .chatId(user.getChatId())
+                        .text(subscription.getNotification().getText())
+                        .build();
+                try {
+                    execute(message);
+                } catch (TelegramApiException e) {
+                    log.error("Execution message error for user: "+ user.getFirstName() +
+                            " of notification " + subscription.getNotification().getNotificationType());
+                }
+            });
         });
 
     }
