@@ -15,12 +15,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.springLearnig.telegramBot.telegram.Constants.CMD_START;
-import static com.springLearnig.telegramBot.telegram.Constants.BTN_YES_REGISTER;
-import static com.springLearnig.telegramBot.telegram.Constants.BTN_NO_REGISTER;
+import static com.springLearnig.telegramBot.telegram.Constants.*;
 
 @Service
 @Slf4j
@@ -59,6 +57,16 @@ public class BotService {
                     text = text + "\nDo you want to register?";
                     message.setReplyMarkup(getKeyboardYesNo(BTN_YES_REGISTER, BTN_NO_REGISTER));
                 }
+                message.setText(text);
+                break;
+            case CMD_NOTIFICATIONS:
+                text = EmojiParser.parseToUnicode("New notification" + ":blush:");
+                message.setReplyMarkup(getKeyboard(new HashMap<>() {{
+                                                       put(" btn 1", "CallBack_1");
+                                                       put(" btn 2", "CallBack_2");
+                                                   }}
+                ));
+
                 message.setText(text);
                 break;
 //                case "/help":
@@ -125,6 +133,15 @@ public class BotService {
         inlineKeyboardMarkup.setKeyboard(keyboardRows);
 
         return inlineKeyboardMarkup;
+    }
+
+    private InlineKeyboardMarkup getKeyboard(Map<String, String> buttonNameAndCallback) {
+        List<InlineKeyboardButton> keyboardButtons =
+                buttonNameAndCallback.keySet().stream()
+                        .map(btn ->
+                                InlineKeyboardButton.builder().text(btn).callbackData(buttonNameAndCallback.get(btn)).build())
+                        .collect(Collectors.toList());
+        return new InlineKeyboardMarkup(List.of(keyboardButtons));
     }
 
     private void registerUser(Message message) {

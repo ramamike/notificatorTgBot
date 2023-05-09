@@ -4,10 +4,11 @@ import java.util.Set;
 
 public class Constants {
     public final static String CMD_START = "/start";
-    public final static String CMD_HELP = "/hepl";
+    public final static String CMD_HELP = "/help";
     public final static String CMD_MY_DATA = "/mydata";
     public final static String CMD_DELETE_DATA = "/deletedata";
     public final static String CMD_SETTINGS = "/settings";
+    public final static String CMD_NOTIFICATIONS = "/notifications";
 
     public final static String BTN_YES_REGISTER = "BTN_YES_REGISTER";
     public final static String BTN_NO_REGISTER = "BTN_NO_REGISTER";

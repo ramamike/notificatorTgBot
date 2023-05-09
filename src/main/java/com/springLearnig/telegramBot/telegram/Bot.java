@@ -3,7 +3,6 @@ package com.springLearnig.telegramBot.telegram;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.service.BotService;
-import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

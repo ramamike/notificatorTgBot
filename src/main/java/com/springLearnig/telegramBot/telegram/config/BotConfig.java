@@ -34,7 +34,8 @@ public class BotConfig {
             new BotCommand(Constants.CMD_MY_DATA, "get a welcome message, invite to registration"),
             new BotCommand(Constants.CMD_MY_DATA, "get your data stored"),
             new BotCommand(Constants.CMD_DELETE_DATA, "delete your data stored"),
-            new BotCommand(Constants.CMD_SETTINGS, "set your preferences")
+            new BotCommand(Constants.CMD_SETTINGS, "set your preferences"),
+            new BotCommand(Constants.CMD_NOTIFICATIONS, "chose notifications")
     );
 
     public void setOwnerId(Long ownerId) {
