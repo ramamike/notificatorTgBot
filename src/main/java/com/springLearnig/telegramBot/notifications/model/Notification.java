@@ -1,8 +1,7 @@
-package com.springLearnig.telegramBot.notifications.models;
+package com.springLearnig.telegramBot.notifications.model;
 
-import com.springLearnig.telegramBot.notifications.NotificationType;
+import com.springLearnig.telegramBot.notifications.NotificationStatus;
 import com.springLearnig.telegramBot.subscriptions.model.Subscription;
-import com.springLearnig.telegramBot.telegram.model.User;
 import lombok.*;
 
 import javax.persistence.*;
@@ -21,10 +20,12 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private NotificationType notificationType;
+    private String name;
 
     private String text;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationStatus status;
 
     @OneToMany(
             fetch = FetchType.EAGER,

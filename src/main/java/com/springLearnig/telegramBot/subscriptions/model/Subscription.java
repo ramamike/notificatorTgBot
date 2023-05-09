@@ -1,12 +1,10 @@
 package com.springLearnig.telegramBot.subscriptions.model;
 
-import com.springLearnig.telegramBot.notifications.NotificationType;
-import com.springLearnig.telegramBot.notifications.models.Notification;
+import com.springLearnig.telegramBot.notifications.model.Notification;
 import com.springLearnig.telegramBot.telegram.model.User;
 import lombok.*;
 
 import javax.persistence.*;
-import java.util.Objects;
 
 @Getter
 @Setter

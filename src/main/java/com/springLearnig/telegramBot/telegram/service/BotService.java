@@ -1,9 +1,11 @@
 package com.springLearnig.telegramBot.telegram.service;
 
+import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
 import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.model.User;
+import com.springLearnig.telegramBot.telegram.utils.BotUtils;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,11 +14,9 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.springLearnig.telegramBot.telegram.Constants.*;
 
@@ -27,13 +27,18 @@ public class BotService {
     private final String HELP_TEXT = "Choose command from menu";
     private final BotConfig botConfig;
 
-    private IUserRepository userRepository;
-    private ISubscriptionRepository subscriptionRepository;
+    private IUserRepository userRepo;
+    private ISubscriptionRepository subscriptionRepo;
+    private INotificationRepository notificationRepo;
 
-    public BotService(BotConfig botConfig, IUserRepository userRepository, ISubscriptionRepository subscriptionRepository) {
+    public BotService(BotConfig botConfig,
+                      IUserRepository userRepository,
+                      ISubscriptionRepository subscriptionRepository,
+                      INotificationRepository notificationRepository) {
         this.botConfig = botConfig;
-        this.userRepository = userRepository;
-        this.subscriptionRepository = subscriptionRepository;
+        this.userRepo = userRepository;
+        this.subscriptionRepo = subscriptionRepository;
+        this.notificationRepo = notificationRepository;
     }
 
     public SendMessage onUpdateReceivedMessage(Update update) {
@@ -53,21 +58,14 @@ public class BotService {
         switch (messageCommand) {
             case CMD_START:
                 String text = EmojiParser.parseToUnicode("Hi, " + name + ":blush:");
-                if (!userRepository.existsByChatId(chatId)) {
+                if (!userRepo.existsByChatId(chatId)) {
                     text = text + "\nDo you want to register?";
                     message.setReplyMarkup(getKeyboardYesNo(BTN_YES_REGISTER, BTN_NO_REGISTER));
                 }
                 message.setText(text);
                 break;
             case CMD_NOTIFICATIONS:
-                text = EmojiParser.parseToUnicode("New notification" + ":blush:");
-                message.setReplyMarkup(getKeyboard(new HashMap<>() {{
-                                                       put(" btn 1", "CallBack_1");
-                                                       put(" btn 2", "CallBack_2");
-                                                   }}
-                ));
-
-                message.setText(text);
+                updateMessageForNotifications(message);
                 break;
 //                case "/help":
 //                    startCommandReceived(chatId, HELP_TEXT);
@@ -111,41 +109,15 @@ public class BotService {
         return editMessageText;
     }
 
-
     private InlineKeyboardMarkup getKeyboardYesNo(String callBackForYes, String callBackForNo) {
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
-        List<InlineKeyboardButton> keyboardButtons = new ArrayList<>();
-
-        var button_Yes = new InlineKeyboardButton();
-        button_Yes.setText("Yes");
-        button_Yes.setCallbackData(callBackForYes);
-
-        var button_No = new InlineKeyboardButton();
-        button_No.setText("No");
-        button_No.setCallbackData(callBackForNo);
-
-        keyboardButtons.add(button_Yes);
-        keyboardButtons.add(button_No);
-
-        keyboardRows.add(keyboardButtons);
-
-        inlineKeyboardMarkup.setKeyboard(keyboardRows);
-
-        return inlineKeyboardMarkup;
-    }
-
-    private InlineKeyboardMarkup getKeyboard(Map<String, String> buttonNameAndCallback) {
-        List<InlineKeyboardButton> keyboardButtons =
-                buttonNameAndCallback.keySet().stream()
-                        .map(btn ->
-                                InlineKeyboardButton.builder().text(btn).callbackData(buttonNameAndCallback.get(btn)).build())
-                        .collect(Collectors.toList());
-        return new InlineKeyboardMarkup(List.of(keyboardButtons));
+        return BotUtils.getKeyboard(new HashMap<>() {{
+            put("No", callBackForNo);
+            put("Yes", callBackForYes);
+        }});
     }
 
     private void registerUser(Message message) {
-        if (!userRepository.existsByChatId(message.getChatId())) {
+        if (!userRepo.existsByChatId(message.getChatId())) {
             var chatId = message.getChatId();
             var chat = message.getChat();
             User user = User.builder()
@@ -155,9 +127,26 @@ public class BotService {
                     .userName(chat.getUserName())
                     .timestamp(new Timestamp(System.currentTimeMillis()))
                     .build();
-            userRepository.save(user);
+            userRepo.save(user);
             log.info("New user: " + user);
         }
+    }
+
+    private SendMessage updateMessageForNotifications(SendMessage message) {
+        Map<String, String> mapForKeyboard = new HashMap<>();
+        var notifications = notificationRepo.findAll();
+        if (!notifications.iterator().hasNext()) {
+            message.setText(EmojiParser.parseToUnicode("Sorry, no Available Notifications" + ":confused:"));
+            return message;
+        }
+        notifications.forEach(notification -> {
+                    String buttonName = notification.getName();
+                    mapForKeyboard.put(buttonName, "NOTIFICATION_" + buttonName);
+                }
+        );
+        message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
+        message.setText(EmojiParser.parseToUnicode("Available Notifications, please make your choice" + ":blush:"));
+        return message;
     }
 
 }

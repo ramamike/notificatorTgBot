@@ -65,7 +65,7 @@ public class Bot extends TelegramLongPollingBot {
                     execute(message);
                 } catch (TelegramApiException e) {
                     log.error("Execution message error for user: "+ user.getFirstName() +
-                            " of notification " + subscription.getNotification().getNotificationType());
+                            " of notification " + subscription.getNotification().getName());
                 }
             });
         });
