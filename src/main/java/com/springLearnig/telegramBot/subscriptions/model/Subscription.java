@@ -21,7 +21,7 @@ public class Subscription {
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     private Notification notification;
 
     private String setting;
