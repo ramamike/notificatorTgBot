@@ -24,4 +24,6 @@ public class Subscription {
     @ManyToOne(fetch = FetchType.LAZY)
     private Notification notification;
 
+    private String setting;
+
 }

@@ -1,7 +1,9 @@
 package com.springLearnig.telegramBot.telegram.service;
 
 import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
+import com.springLearnig.telegramBot.notifications.model.Notification;
 import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
+import com.springLearnig.telegramBot.subscriptions.model.Subscription;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.model.User;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -25,6 +28,8 @@ import static com.springLearnig.telegramBot.telegram.Constants.*;
 public class BotService {
 
     private final String HELP_TEXT = "Choose command from menu";
+
+    private final String SMTH_WRONG = EmojiParser.parseToUnicode("Something went wrong" + ":thinking:");
     private final BotConfig botConfig;
 
     private IUserRepository userRepo;
@@ -60,7 +65,7 @@ public class BotService {
                 String text = EmojiParser.parseToUnicode("Hi, " + name + ":blush:");
                 if (!userRepo.existsByChatId(chatId)) {
                     text = text + "\nDo you want to register?";
-                    message.setReplyMarkup(getKeyboardYesNo(BTN_YES_REGISTER, BTN_NO_REGISTER));
+                    message.setReplyMarkup(getKeyboardYesNo("REGISTRATION_SET_YES", "REGISTRATION_SET_NO"));
                 }
                 message.setText(text);
                 break;
@@ -86,33 +91,67 @@ public class BotService {
 
     public EditMessageText onUpdateReceivedCallBack(Update update) {
 
-        String callBackData = update.getCallbackQuery().getData();
-        Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
-        Long chatId = update.getCallbackQuery().getMessage().getChatId();
-        Message message = update.getCallbackQuery().getMessage();
+        CallbackQuery callBack = update.getCallbackQuery();
+        String data = callBack.getData();
+        Integer messageId = callBack.getMessage().getMessageId();
+        Long chatId = callBack.getMessage().getChatId();
 
         EditMessageText editMessageText = new EditMessageText();
         editMessageText.setChatId(chatId);
         editMessageText.setMessageId(messageId);
 
-        switch (callBackData) {
-            case BTN_YES_REGISTER:
+        if (data.contains("REGISTRATION_")) {
+            updateEditMessageForRegistration(callBack, editMessageText);
+        } else if (data.contains("NOTIFICATION_")) {
+            updateEditMessageForNotification(callBack, editMessageText);
+        }
+
+        return editMessageText;
+    }
+
+    private EditMessageText updateEditMessageForNotification(CallbackQuery callBack, EditMessageText editMessageText) {
+        String data = callBack.getData();
+        Message message = callBack.getMessage();
+        var userOptional = userRepo.findByChatId(message.getChatId());
+        if (userOptional.isEmpty()) {
+            editMessageText.setText(SMTH_WRONG);
+            return editMessageText;
+        }
+        User user = userOptional.get();
+        if (data.contains("_ADD_")) {
+            String notificationNamePrep = data.substring(data.indexOf("_")+1);
+            String notificationName = notificationNamePrep.substring(notificationNamePrep.indexOf("_")+1);
+            var notification = notificationRepo.findByName(notificationName);
+            if(notification.isEmpty()) {
+                editMessageText.setText(SMTH_WRONG);
+            }
+            Subscription subscription = Subscription.builder()
+                    .notification(notification.get())
+                    .user(user)
+                    .build();
+            subscriptionRepo.save(subscription);
+        }
+        return editMessageText;
+    }
+
+    private EditMessageText updateEditMessageForRegistration(CallbackQuery callBack, EditMessageText editMessageText) {
+        String data = callBack.getData();
+        Message message = callBack.getMessage();
+        if (data.contains("_SET_")) {
+            if (data.contains("_YES")) {
                 registerUser(message);
                 editMessageText.setText("You are registered as " + message.getChat().getFirstName());
-                break;
-            case BTN_NO_REGISTER:
+            } else {
                 editMessageText.setText(EmojiParser.parseToUnicode("Sorry, there is no service without registration" + ":thinking:"));
-                break;
-            default:
-                editMessageText.setText(EmojiParser.parseToUnicode("Sorry, callback doesn't recognised, try again" + ":no_mouth:"));
+            }
         }
         return editMessageText;
     }
 
     private InlineKeyboardMarkup getKeyboardYesNo(String callBackForYes, String callBackForNo) {
-        return BotUtils.getKeyboard(new HashMap<>() {{
-            put("No", callBackForNo);
-            put("Yes", callBackForYes);
+        return BotUtils.getKeyboard(new LinkedHashMap<>() {{
+            put("YES", callBackForYes);
+            put("NO", callBackForNo);
         }});
     }
 
@@ -141,7 +180,7 @@ public class BotService {
         }
         notifications.forEach(notification -> {
                     String buttonName = notification.getName();
-                    mapForKeyboard.put(buttonName, "NOTIFICATION_" + buttonName);
+                    mapForKeyboard.put(buttonName, "NOTIFICATION_ADD_" + buttonName);
                 }
         );
         message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
