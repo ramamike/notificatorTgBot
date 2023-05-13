@@ -1,7 +1,6 @@
 package com.springLearnig.telegramBot.telegram.service;
 
 import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
-import com.springLearnig.telegramBot.notifications.model.Notification;
 import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
 import com.springLearnig.telegramBot.subscriptions.model.Subscription;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
@@ -55,7 +54,6 @@ public class BotService {
         String textInMessage = messageText;
         if (messageText.contains(" ")) {
             messageCommand = messageText.substring(0, messageText.indexOf(" "));
-            textInMessage = messageText.substring(messageText.indexOf(" "));
         }
         long chatId = update.getMessage().getChatId();
         SendMessage message = new SendMessage();
@@ -71,6 +69,9 @@ public class BotService {
                 break;
             case CMD_NOTIFICATIONS:
                 updateMessageForNotifications(message);
+                break;
+            case CMD_SETTINGS:
+                updateMessageForSettings(message);
                 break;
 //                case "/help":
 //                    startCommandReceived(chatId, HELP_TEXT);
@@ -112,26 +113,38 @@ public class BotService {
     private EditMessageText updateEditMessageForNotification(CallbackQuery callBack, EditMessageText editMessageText) {
         String data = callBack.getData();
         Message message = callBack.getMessage();
-        var userOptional = userRepo.findByChatId(message.getChatId());
+        Optional<User> userOptional = userRepo.findByChatId(message.getChatId());
         if (userOptional.isEmpty()) {
             editMessageText.setText(SMTH_WRONG);
             return editMessageText;
         }
         User user = userOptional.get();
+        String notificationName = getCustomNameFromCallbackData(data);
         if (data.contains("_ADD_")) {
-            String notificationNamePrep = data.substring(data.indexOf("_")+1);
-            String notificationName = notificationNamePrep.substring(notificationNamePrep.indexOf("_")+1);
-            var notification = notificationRepo.findByName(notificationName);
-            if(notification.isEmpty()) {
-                editMessageText.setText(SMTH_WRONG);
-            }
-            Subscription subscription = Subscription.builder()
-                    .notification(notification.get())
-                    .user(user)
-                    .build();
-            subscriptionRepo.save(subscription);
+            notificationRepo.findByName(notificationName).ifPresentOrElse(n -> {
+                        subscriptionRepo.save(Subscription.builder()
+                                .notification(n)
+                                .user(user)
+                                .build());
+                        editMessageText.setText("Notification \"" + notificationName + "\" is added");
+                    },
+                    () -> editMessageText.setText(SMTH_WRONG));
+        } else if (data.contains("_DELETE_")) {
+            notificationRepo.findByName(notificationName).ifPresentOrElse(n -> {
+                        var id = subscriptionRepo.getId(user.getId(), n.getId());
+                        if (id.isPresent()) {
+                            subscriptionRepo.deleteById(id.get());
+                            editMessageText.setText("Subscription to \"" + notificationName + "\" is deleted");
+                        } else editMessageText.setText(SMTH_WRONG);
+                    },
+                    () -> editMessageText.setText(SMTH_WRONG));
         }
         return editMessageText;
+    }
+
+    private String getCustomNameFromCallbackData(String data) {
+        String sub1 = data.substring(data.indexOf("_") + 1);
+        return sub1.substring(sub1.indexOf("_") + 1);
     }
 
     private EditMessageText updateEditMessageForRegistration(CallbackQuery callBack, EditMessageText editMessageText) {
@@ -185,6 +198,28 @@ public class BotService {
         );
         message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
         message.setText(EmojiParser.parseToUnicode("Available Notifications, please make your choice" + ":blush:"));
+        return message;
+    }
+
+    private SendMessage updateMessageForSettings(SendMessage message) {
+        Map<String, String> mapForKeyboard = new HashMap<>();
+        Optional<User> user = userRepo.findByChatId(Long.valueOf(message.getChatId()));
+        if (user.isEmpty()) {
+            message.setText(SMTH_WRONG);
+            return message;
+        }
+        List<Subscription> subscriptions = subscriptionRepo.getAll(user.get().getId());
+        if (subscriptions.isEmpty()) {
+            message.setText(EmojiParser.parseToUnicode("No Available Notifications to delete" + ":confused:"));
+            return message;
+        }
+        subscriptions.forEach(s -> {
+                    String buttonName = s.getNotification().getName();
+                    mapForKeyboard.put("Delete: " + buttonName, "NOTIFICATION_DELETE_" + buttonName);
+                }
+        );
+        message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
+        message.setText(EmojiParser.parseToUnicode("Available Notifications to delete, please make your choice" + ":blush:"));
         return message;
     }
 

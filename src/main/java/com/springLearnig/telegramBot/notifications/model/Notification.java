@@ -5,8 +5,8 @@ import com.springLearnig.telegramBot.subscriptions.model.Subscription;
 import lombok.*;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -33,5 +33,7 @@ public class Notification {
             orphanRemoval = true,
             mappedBy = "notification"
     )
-    private List<Subscription> subscriptions = new ArrayList<>();
+    private Set<Subscription> subscriptions = new HashSet<>();
+
+
 }

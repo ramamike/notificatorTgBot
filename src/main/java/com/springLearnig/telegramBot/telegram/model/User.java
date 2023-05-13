@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -39,6 +39,19 @@ public class User {
             orphanRemoval = true,
             mappedBy = "user"
     )
-    private List<Subscription> subscriptions = new ArrayList<>();
+    private Set<Subscription> subscriptions = new HashSet<>();
 
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", chatId=" + chatId +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", userName='" + userName + '\'' +
+                ", timestamp=" + timestamp +
+                ", subscriptions=" + subscriptions.getClass() +
+                '}';
+    }
 }
+

@@ -31,7 +31,7 @@ public class Bot extends TelegramLongPollingBot {
         this.userRepository = userRepository;
 
         // Set Owner
-        userRepository.findFirstByOrderById().ifPresent(u -> botConfig.setOwnerId(u.getId()));
+//        userRepository.findFirstByOrderById().ifPresent(u -> botConfig.setOwnerId(u.getId()));
 
         try {
             this.execute(new SetMyCommands(botConfig.getCommandList(), new BotCommandScopeDefault(), null));
@@ -53,7 +53,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
 
-    @Scheduled(cron = "${cron.scheduler}")
+//    @Scheduled(cron = "${cron.scheduler}")
     private void sendNotifications() {
         userRepository.findAll().forEach(user -> {
             user.getSubscriptions().forEach(subscription->{
