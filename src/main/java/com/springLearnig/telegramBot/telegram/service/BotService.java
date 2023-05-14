@@ -187,7 +187,15 @@ public class BotService {
 
     private SendMessage updateMessageForNotifications(SendMessage message) {
         Map<String, String> mapForKeyboard = new HashMap<>();
-        var notifications = notificationRepo.findAll();
+
+        Optional<User> user = userRepo.findByChatId(Long.valueOf(message.getChatId()));
+        if (user.isEmpty()) {
+            message.setText(SMTH_WRONG);
+            return message;
+        }
+
+        List<Notification> notifications = subscriptionRepo.getNotificationsForUser(user.get().getId());
+
         if (!notifications.iterator().hasNext()) {
             message.setText(EmojiParser.parseToUnicode("Sorry, no Available Notifications" + ":confused:"));
             return message;
@@ -210,7 +218,7 @@ public class BotService {
             return message;
         }
 
-        List<Notification> notifications = subscriptionRepo.getNotifications(user.get().getId());
+        List<Notification> notifications = subscriptionRepo.getNotificationsOfUser(user.get().getId());
         if (notifications.isEmpty()) {
             message.setText(EmojiParser.parseToUnicode("No Available Notifications to delete" + ":confused:"));
             return message;
