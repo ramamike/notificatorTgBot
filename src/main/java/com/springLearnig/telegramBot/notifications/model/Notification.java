@@ -35,5 +35,14 @@ public class Notification {
     )
     private Set<Subscription> subscriptions = new HashSet<>();
 
-
+    @Override
+    public String toString() {
+        return "Notification{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", text='" + text + '\'' +
+                ", status=" + status +
+                ", subscriptions=" + (subscriptions==null? "0":  subscriptions.size()) +
+                '}';
+    }
 }

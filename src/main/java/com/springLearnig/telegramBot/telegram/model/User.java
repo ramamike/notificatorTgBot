@@ -16,7 +16,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity(name="usersData")
+@Entity(name = "usersData")
 public class User {
 
     @Id
@@ -50,7 +50,7 @@ public class User {
                 ", lastName='" + lastName + '\'' +
                 ", userName='" + userName + '\'' +
                 ", timestamp=" + timestamp +
-                ", subscriptions=" + subscriptions.getClass() +
+                ", subscriptions=" + (subscriptions==null? "0":  subscriptions.size()) +
                 '}';
     }
 }

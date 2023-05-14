@@ -18,6 +18,5 @@ public interface ISubscriptionRepository extends CrudRepository<Subscription, Lo
     Optional<Long> getId(Long userId, Long notificationId);
 
     @Query("select s from subscriptions s where s.user.id=?1")
-//    @Query("select s from subscriptions s, notifications n where s.user.id=?1 AND s.id IN (:n.subscriptions.id)")
     List<Subscription> getAll(Long userId);
 }
