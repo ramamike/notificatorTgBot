@@ -1,5 +1,6 @@
 package com.springLearnig.telegramBot.subscriptions.model;
 
+import com.springLearnig.telegramBot.notifications.model.Notification;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
@@ -19,4 +20,7 @@ public interface ISubscriptionRepository extends CrudRepository<Subscription, Lo
 
     @Query("select s from subscriptions s where s.user.id=?1")
     List<Subscription> getAll(Long userId);
+
+    @Query("select n from notifications n, subscriptions s where s.user.id=?1 AND n.id=s.notification.id")
+    List<Notification> getNotifications(Long userId);
 }

@@ -1,6 +1,7 @@
 package com.springLearnig.telegramBot.telegram.service;
 
 import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
+import com.springLearnig.telegramBot.notifications.model.Notification;
 import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
 import com.springLearnig.telegramBot.subscriptions.model.Subscription;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
@@ -208,13 +209,14 @@ public class BotService {
             message.setText(SMTH_WRONG);
             return message;
         }
-        List<Subscription> subscriptions = subscriptionRepo.getAll(user.get().getId());
-        if (subscriptions.isEmpty()) {
+
+        List<Notification> notifications = subscriptionRepo.getNotifications(user.get().getId());
+        if (notifications.isEmpty()) {
             message.setText(EmojiParser.parseToUnicode("No Available Notifications to delete" + ":confused:"));
             return message;
         }
-        subscriptions.forEach(s -> {
-                    String buttonName = s.getNotification().getName();
+        notifications.forEach(n -> {
+                    String buttonName = n.getName();
                     mapForKeyboard.put("Delete: " + buttonName, "NOTIFICATION_DELETE_" + buttonName);
                 }
         );
