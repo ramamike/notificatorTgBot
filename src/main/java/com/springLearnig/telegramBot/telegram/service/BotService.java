@@ -194,7 +194,7 @@ public class BotService {
             return message;
         }
 
-        List<Notification> notifications = subscriptionRepo.getNotificationsForUser(user.get().getId());
+        List<Notification> notifications = notificationRepo.getForUser(user.get().getId());
 
         if (!notifications.iterator().hasNext()) {
             message.setText(EmojiParser.parseToUnicode("Sorry, no Available Notifications" + ":confused:"));
@@ -218,7 +218,7 @@ public class BotService {
             return message;
         }
 
-        List<Notification> notifications = subscriptionRepo.getNotificationsOfUser(user.get().getId());
+        List<Notification> notifications = notificationRepo.getUserNotification(user.get().getId());
         if (notifications.isEmpty()) {
             message.setText(EmojiParser.parseToUnicode("No Available Notifications to delete" + ":confused:"));
             return message;
