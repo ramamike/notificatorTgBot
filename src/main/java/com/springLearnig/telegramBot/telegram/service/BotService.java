@@ -27,8 +27,6 @@ import static com.springLearnig.telegramBot.telegram.Constants.*;
 @Slf4j
 public class BotService {
 
-    private final String HELP_TEXT = "Choose command from menu";
-
     private final String SMTH_WRONG = EmojiParser.parseToUnicode("Something went wrong" + ":thinking:");
     private final BotConfig botConfig;
 
@@ -74,12 +72,9 @@ public class BotService {
             case CMD_SETTINGS:
                 updateMessageForSettings(message);
                 break;
-//                case "/help":
-//                    startCommandReceived(chatId, HELP_TEXT);
-//                    break;
-//                case "/register":
-//                    register(chatId);
-//                    break;
+            case CMD_HELP:
+                updateMessageForHelp(message);
+                break;
 //                case "/send":
 //                    send(textInMessage, userRepository.findAll());
 //                    break;
@@ -233,4 +228,10 @@ public class BotService {
         return message;
     }
 
+    private SendMessage updateMessageForHelp(SendMessage message) {
+        message.setText(EmojiParser.parseToUnicode("Available commands: \n"
+                + String.join("\n", botConfig.getCommands()))
+                + "\n\n Hint: Chose command \\/NOTIFICATION and take your service"+ ":blush:");
+        return message;
+    }
 }

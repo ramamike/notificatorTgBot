@@ -23,6 +23,8 @@ public class Notification {
     private String name;
 
     private String text;
+//    @Column(length=255)
+    private String data;
 
     @Enumerated(EnumType.STRING)
     private NotificationStatus status;

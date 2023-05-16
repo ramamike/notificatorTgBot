@@ -25,8 +25,8 @@ public class Bot extends TelegramLongPollingBot {
 
     private final String HELP_TEXT = "Choose command from menu";
 
-    public Bot(BotService service,BotConfig botConfig, IUserRepository userRepository) {
-        this.service=service;
+    public Bot(BotService service, BotConfig botConfig, IUserRepository userRepository) {
+        this.service = service;
         this.botConfig = botConfig;
         this.userRepository = userRepository;
 
@@ -53,10 +53,11 @@ public class Bot extends TelegramLongPollingBot {
     }
 
 
-//    @Scheduled(cron = "${cron.scheduler}")
+    //    @Scheduled(cron = "${cron.scheduler}")
+    @Scheduled(fixedDelay = 20)
     private void sendNotifications() {
         userRepository.findAll().forEach(user -> {
-            user.getSubscriptions().forEach(subscription->{
+            user.getSubscriptions().forEach(subscription -> {
                 SendMessage message = SendMessage.builder()
                         .chatId(user.getChatId())
                         .text(subscription.getNotification().getText())
@@ -64,7 +65,7 @@ public class Bot extends TelegramLongPollingBot {
                 try {
                     execute(message);
                 } catch (TelegramApiException e) {
-                    log.error("Execution message error for user: "+ user.getFirstName() +
+                    log.error("Execution message error for user: " + user.getFirstName() +
                             " of notification " + subscription.getNotification().getName());
                 }
             });

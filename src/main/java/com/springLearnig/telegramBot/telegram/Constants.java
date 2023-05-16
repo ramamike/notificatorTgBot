@@ -1,7 +1,5 @@
 package com.springLearnig.telegramBot.telegram;
 
-import java.util.Set;
-
 public class Constants {
     public final static String CMD_START = "/start";
     public final static String CMD_HELP = "/help";

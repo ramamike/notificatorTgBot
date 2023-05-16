@@ -1,7 +1,6 @@
 package com.springLearnig.telegramBot.telegram.config;
 
 import com.springLearnig.telegramBot.telegram.Constants;
-import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,8 +9,8 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @EnableScheduling
@@ -42,4 +41,7 @@ public class BotConfig {
         this.ownerId = ownerId;
     }
 
+    public List<String> getCommands() {
+        return  commandList.stream().map(cmd->cmd.getCommand()+ ": " + cmd.getDescription()).collect(Collectors.toList());
+    }
 }
