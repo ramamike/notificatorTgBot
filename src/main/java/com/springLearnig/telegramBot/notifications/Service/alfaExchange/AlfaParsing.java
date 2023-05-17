@@ -21,11 +21,11 @@ import java.io.IOException;
 @Slf4j
 @Service
 @EnableScheduling()
-public class Parsing {
+public class AlfaParsing {
 
     private INotificationRepository notificationRepo;
 
-    public Parsing(INotificationRepository notificationRepo) {
+    public AlfaParsing(INotificationRepository notificationRepo) {
         this.notificationRepo = notificationRepo;
     }
 
@@ -34,10 +34,10 @@ public class Parsing {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     //    @Scheduled(cron = "${cron.scheduler}")
-    @Scheduled(fixedDelay = 10)
-    public void parsingByTag() throws IOException {
-//        Document document = Jsoup.connect(URL).get();
-        Document document = Jsoup.parse(new File("/home/mihal/progr/javaProjects/_htmlForParse/alfa.html"), "UTF-8", "");
+    @Scheduled(fixedDelay = 30000)
+    public void parsing() throws IOException {
+        Document document = Jsoup.connect(URL).get();
+//        Document document = Jsoup.parse(new File("/home/mihal/progr/javaProjects/_htmlForParse/alfa.html"), "UTF-8", "");
         Elements currency = document.select("div[class~=v-data-table.currency-table.*]");
         Elements rows = currency.select("tr");
 
@@ -48,7 +48,7 @@ public class Parsing {
         Double purchaseValue = Double.valueOf(purchase);
         Double sellingValue = Double.valueOf(selling);
 
-        Entity newData = Entity.builder()
+        AlfaEntity newData = AlfaEntity.builder()
                 .purchase(purchaseValue)
                 .selling(sellingValue)
                 .build();
@@ -56,7 +56,7 @@ public class Parsing {
         notificationRepo.findByName(Notifications.ALFA_EXCH.toString())
                 .ifPresentOrElse(n -> {
                             try {
-                                Entity data = objectMapper.readValue(n.getData(), Entity.class);
+                                AlfaEntity data = objectMapper.readValue(n.getData(), AlfaEntity.class);
                                 if (!newData.getPurchase().equals(data.getPurchase()) || !newData.getSelling().equals(data.getSelling())) {
                                     data.setPurchase(newData.getPurchase());
                                     data.setPurchasePct(data.getPurchase() / Math.max(newData.getPurchase(), 1.0) * 100);
@@ -64,15 +64,13 @@ public class Parsing {
                                     data.setSellingPct(data.getSelling() / Math.max(newData.getSelling(), 1.0) * 100);
                                     data.setMarkPct(data.getMark() / Math.max(newData.getSelling(), 1.0) * 100);
                                     String jsonData = objectMapper.writeValueAsString(data);
-                                    notificationRepo.save(Notification.builder()
-                                            .name(Notifications.ALFA_EXCH.toString())
-                                            .status(NotificationStatus.NEW)
-                                            .data(jsonData)
-                                            .text(n.getText())
-                                            .build());
+                                    n.setStatus(NotificationStatus.NEW);
+                                    n.setData(jsonData);
+                                    n.setText(data.getText());
+                                    notificationRepo.save(n);
                                 }
                             } catch (JsonProcessingException e) {
-                                log.error("JSON diserelisation to Entuty error: " + e);
+                                log.error("JSON deserialization to Entity error: " + e);
                             }
                         },
                         () -> log.error("Notification is not found"));

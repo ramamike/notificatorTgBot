@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class AlfaExchangeInitializer implements Runnable {
+public class AlfaInitializer implements Runnable {
 
     private final INotificationRepository repo;
 
@@ -26,7 +26,7 @@ public class AlfaExchangeInitializer implements Runnable {
         ObjectMapper objectMapper = new ObjectMapper();
 
         if (repo.findByName(Notifications.ALFA_EXCH.toString()).isEmpty()) {
-            Entity entity = new Entity(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
+            AlfaEntity entity = new AlfaEntity(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
             try {
                 String jsonData = objectMapper.writeValueAsString(entity);
                 repo.save(Notification.builder()

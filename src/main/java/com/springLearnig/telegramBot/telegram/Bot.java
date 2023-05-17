@@ -1,5 +1,6 @@
 package com.springLearnig.telegramBot.telegram;
 
+import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.service.BotService;
@@ -21,14 +22,16 @@ public class Bot extends TelegramLongPollingBot {
     private BotService service;
     private final BotConfig botConfig;
 
-    private IUserRepository userRepository;
+    private IUserRepository userRepo;
+    private INotificationRepository notificationRepo;
 
     private final String HELP_TEXT = "Choose command from menu";
 
-    public Bot(BotService service, BotConfig botConfig, IUserRepository userRepository) {
+    public Bot(BotService service, BotConfig botConfig, IUserRepository userRepository, INotificationRepository notificationRepo) {
         this.service = service;
         this.botConfig = botConfig;
-        this.userRepository = userRepository;
+        this.userRepo = userRepository;
+        this.notificationRepo=notificationRepo;
 
         // Set Owner
 //        userRepository.findFirstByOrderById().ifPresent(u -> botConfig.setOwnerId(u.getId()));
@@ -54,19 +57,19 @@ public class Bot extends TelegramLongPollingBot {
 
 
     //    @Scheduled(cron = "${cron.scheduler}")
-    @Scheduled(fixedDelay = 20)
+    @Scheduled(fixedDelay = 6000)
     private void sendNotifications() {
-        userRepository.findAll().forEach(user -> {
-            user.getSubscriptions().forEach(subscription -> {
+        userRepo.findAll().forEach(user -> {
+            notificationRepo.getUserNotification(user.getId()).forEach(notification -> {
                 SendMessage message = SendMessage.builder()
                         .chatId(user.getChatId())
-                        .text(subscription.getNotification().getText())
+                        .text(notification.getText())
                         .build();
                 try {
                     execute(message);
                 } catch (TelegramApiException e) {
                     log.error("Execution message error for user: " + user.getFirstName() +
-                            " of notification " + subscription.getNotification().getName());
+                            " of notification " + notification.getName());
                 }
             });
         });

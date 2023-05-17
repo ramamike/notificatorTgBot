@@ -1,11 +1,13 @@
 package com.springLearnig.telegramBot.notifications.Service.alfaExchange;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.Builder;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 @Builder
-public class Entity {
-
+public class AlfaEntity {
 
     private Double purchase;
     private Double selling;
@@ -14,7 +16,7 @@ public class Entity {
     private Double mark;
     private Double markPct;
 
-    public Entity(Double purchase, Double selling, Double purchasePct, Double sellingPct, Double mark, Double markPct) {
+    public AlfaEntity(Double purchase, Double selling, Double purchasePct, Double sellingPct, Double mark, Double markPct) {
         this.purchase = purchase;
         this.selling = selling;
         this.purchasePct = purchasePct;
@@ -74,6 +76,7 @@ public class Entity {
         this.markPct = markPct;
     }
 
+    @JsonIgnore
     public String getText() {
         return "purchase " + purchase + "\t" +
                 (purchasePct.compareTo(Double.MIN_NORMAL) > 0 ? UP + purchasePct : DOWN + purchasePct) +
