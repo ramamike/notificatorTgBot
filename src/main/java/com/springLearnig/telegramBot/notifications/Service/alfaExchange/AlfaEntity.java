@@ -79,9 +79,9 @@ public class AlfaEntity {
     @JsonIgnore
     public String getText() {
         return "purchase " + purchase + "\t" +
-                (purchasePct.compareTo(Double.MIN_NORMAL) > 0 ? UP + purchasePct : DOWN + purchasePct) +
+                (purchasePct.compareTo(Double.MIN_NORMAL) > 0 ? UP + purchasePct : DOWN + purchasePct) + "%" +
                 "\nselling " + selling + "\t" +
-                (sellingPct.compareTo(Double.MIN_NORMAL) > 0 ? UP + sellingPct : DOWN + sellingPct) +
-                "\nmark " + mark + "\t" + (markPct.compareTo(Double.MIN_NORMAL) > 0 ? UP + markPct : DOWN + markPct);
+                (sellingPct.compareTo(Double.MIN_NORMAL) > 0 ? UP + sellingPct : DOWN + sellingPct) + "%" +
+                "\nmark " + mark + "\t" + (markPct.compareTo(Double.MIN_NORMAL) > 0 ? UP + markPct : DOWN + markPct) + "%";
     }
 }

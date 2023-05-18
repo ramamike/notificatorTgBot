@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springLearnig.telegramBot.notifications.NotificationStatus;
 import com.springLearnig.telegramBot.notifications.Notifications;
 import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
-import com.springLearnig.telegramBot.notifications.model.Notification;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 
 import org.jsoup.nodes.Document;
@@ -15,8 +15,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -24,29 +25,49 @@ import java.io.IOException;
 public class AlfaParsing {
 
     private INotificationRepository notificationRepo;
+    private final String customURL = "https://select.by/kurs/";
 
     public AlfaParsing(INotificationRepository notificationRepo) {
         this.notificationRepo = notificationRepo;
     }
 
-    private final String URL = "https://www.alfabank.by/";
-
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final static double LOW_BOARDER = 1.0;
+    private final static double UP_BOARDER = 5.0;
+
 
     //    @Scheduled(cron = "${cron.scheduler}")
     @Scheduled(fixedDelay = 30000)
     public void parsing() throws IOException {
-        Document document = Jsoup.connect(URL).get();
+        Connection connection = Jsoup.connect(customURL);
+        Document document = connection.get();
 //        Document document = Jsoup.parse(new File("/home/mihal/progr/javaProjects/_htmlForParse/alfa.html"), "UTF-8", "");
-        Elements currency = document.select("div[class~=v-data-table.currency-table.*]");
+        Elements currency = document.select("table[class~=table.table-hover.table-sm.courses-main.*]");
+        Elements table = currency.select("tbody");
         Elements rows = currency.select("tr");
-
-        Elements columns = rows.get(1).select("td");
-        String purchase = columns.get(2).text();
-        String selling = columns.get(3).text();
+        if (rows.isEmpty()) {
+            log.error(customURL + " parsing issue, there is no result for rows selection");
+            return;
+        }
+        Elements columns = rows.get(2).select("td");
+        if (columns.isEmpty()) {
+            log.error(customURL + " parsing issue, there is no result for columns selection");
+            return;
+        }
+        String purchase = columns.get(1).text().replace(",", ".");
+        String selling = columns.get(2).text().replace(",", ".");
 
         Double purchaseValue = Double.valueOf(purchase);
         Double sellingValue = Double.valueOf(selling);
+
+        if (purchaseValue.compareTo(LOW_BOARDER) < 0
+                && purchaseValue.compareTo(UP_BOARDER) > 0
+                && sellingValue.compareTo(LOW_BOARDER) < 0
+                && sellingValue.compareTo(UP_BOARDER) > 0) {
+            log.error(customURL + " parsing issue, out of range [" + LOW_BOARDER + "," + UP_BOARDER + "]");
+            return;
+        }
 
         AlfaEntity newData = AlfaEntity.builder()
                 .purchase(purchaseValue)
@@ -58,11 +79,11 @@ public class AlfaParsing {
                             try {
                                 AlfaEntity data = objectMapper.readValue(n.getData(), AlfaEntity.class);
                                 if (!newData.getPurchase().equals(data.getPurchase()) || !newData.getSelling().equals(data.getSelling())) {
+                                    data.setPurchasePct(getPercents(data.getPurchase(), newData.getPurchase()));
                                     data.setPurchase(newData.getPurchase());
-                                    data.setPurchasePct(data.getPurchase() / Math.max(newData.getPurchase(), 1.0) * 100);
+                                    data.setSellingPct(getPercents(data.getSelling(), newData.getSelling()));
                                     data.setSelling(newData.getSelling());
-                                    data.setSellingPct(data.getSelling() / Math.max(newData.getSelling(), 1.0) * 100);
-                                    data.setMarkPct(data.getMark() / Math.max(newData.getSelling(), 1.0) * 100);
+                                    data.setMarkPct(getPercents(data.getSelling(), newData.getSelling()));
                                     String jsonData = objectMapper.writeValueAsString(data);
                                     n.setStatus(NotificationStatus.NEW);
                                     n.setData(jsonData);
@@ -75,5 +96,10 @@ public class AlfaParsing {
                         },
                         () -> log.error("Notification is not found"));
 
+    }
+
+    private Double getPercents(Double oldValue, Double newValue) {
+        Double newPurchase = (Math.abs(oldValue - newValue) / Math.max(newValue, 1.0)) * 100;
+        return ((double) (Math.round(newPurchase * 1000)) / 1000);
     }
 }
