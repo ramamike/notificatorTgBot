@@ -37,8 +37,8 @@ public class AlfaParsing {
     private final static double UP_BOARDER = 5.0;
 
 
-    //    @Scheduled(cron = "${cron.scheduler}")
-    @Scheduled(fixedDelay = 30000)
+        @Scheduled(cron = "${cron.scheduler.parsing}")
+//    @Scheduled(fixedDelay = 30000)
     public void parsing() throws IOException {
         Connection connection = Jsoup.connect(customURL);
         Document document = connection.get();
@@ -79,11 +79,11 @@ public class AlfaParsing {
                             try {
                                 AlfaEntity data = objectMapper.readValue(n.getData(), AlfaEntity.class);
                                 if (!newData.getPurchase().equals(data.getPurchase()) || !newData.getSelling().equals(data.getSelling())) {
+                                    data.setMarkPct(getPercents(data.getMark(), newData.getSelling()));
                                     data.setPurchasePct(getPercents(data.getPurchase(), newData.getPurchase()));
                                     data.setPurchase(newData.getPurchase());
                                     data.setSellingPct(getPercents(data.getSelling(), newData.getSelling()));
                                     data.setSelling(newData.getSelling());
-                                    data.setMarkPct(getPercents(data.getSelling(), newData.getSelling()));
                                     String jsonData = objectMapper.writeValueAsString(data);
                                     n.setStatus(NotificationStatus.NEW);
                                     n.setData(jsonData);

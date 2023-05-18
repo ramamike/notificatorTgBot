@@ -5,6 +5,7 @@ import com.springLearnig.telegramBot.notifications.model.INotificationRepository
 import com.springLearnig.telegramBot.telegram.config.BotConfig;
 import com.springLearnig.telegramBot.telegram.model.IUserRepository;
 import com.springLearnig.telegramBot.telegram.service.BotService;
+import com.springLearnig.telegramBot.telegram.utils.BotUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.LinkedHashMap;
 
 @Component
 @Slf4j
@@ -57,8 +60,8 @@ public class Bot extends TelegramLongPollingBot {
     }
 
 
-    //    @Scheduled(cron = "${cron.scheduler}")
-    @Scheduled(fixedDelay = 60000)
+        @Scheduled(cron = "${cron.scheduler.notification}")
+//    @Scheduled(fixedDelay = 60000)
     private void sendNotifications() {
         userRepo.findAll().forEach(user -> {
             notificationRepo.getUserNotification(user.getId()).forEach(notification -> {

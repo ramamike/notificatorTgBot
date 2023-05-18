@@ -1,5 +1,10 @@
 package com.springLearnig.telegramBot.telegram.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.springLearnig.telegramBot.notifications.NotificationStatus;
+import com.springLearnig.telegramBot.notifications.Notifications;
+import com.springLearnig.telegramBot.notifications.Service.alfaExchange.AlfaEntity;
 import com.springLearnig.telegramBot.notifications.model.INotificationRepository;
 import com.springLearnig.telegramBot.notifications.model.Notification;
 import com.springLearnig.telegramBot.subscriptions.model.ISubscriptionRepository;
@@ -44,13 +49,16 @@ public class BotService {
         this.notificationRepo = notificationRepository;
     }
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public SendMessage onUpdateReceivedMessage(Update update) {
 
         String firstName = update.getMessage().getChat().getFirstName();
         String name = (firstName == null) ? "" : firstName;
         String messageText = update.getMessage().getText();
         String messageCommand = messageText;
-        String textInMessage = messageText;
+        String textInMessage = (messageText.contains(" ")) ? messageText.substring(messageText.indexOf(" ") + 1, messageText.length()) : null;
+        ;
         if (messageText.contains(" ")) {
             messageCommand = messageText.substring(0, messageText.indexOf(" "));
         }
@@ -70,7 +78,7 @@ public class BotService {
                 updateMessageForNotifications(message);
                 break;
             case CMD_SETTINGS:
-                updateMessageForSettings(message);
+                updateMessageForSettings(message, textInMessage);
                 break;
             case CMD_HELP:
                 updateMessageForHelp(message);
@@ -134,7 +142,35 @@ public class BotService {
                         } else editMessageText.setText(SMTH_WRONG);
                     },
                     () -> editMessageText.setText(SMTH_WRONG));
+        } else if (data.contains("_MARK_")) {
+            notificationRepo.findByName(notificationName)
+                    .ifPresentOrElse(n -> {
+                                editMessageText.setText("Please print and Send command with parameter for marking:\n" +
+                                        "\"/settings for " + notificationName + " mark 2.234\"");
+                            },
+                            () -> log.error("Notification is not found"));
+        } else if (data.contains("_MARKED_")) {
+            String notification = notificationName.substring(0, notificationName.indexOf("-"));
+            String mark = notificationName.substring(notificationName.indexOf("-")+1, notificationName.length());
+            notificationRepo.findByName(notification)
+                    .ifPresentOrElse(n -> {
+                                try {
+                                    AlfaEntity entity = objectMapper.readValue(n.getData(), AlfaEntity.class);
+                                    entity.setMark(Double.valueOf(mark.replace(",", ".")));
+                                    String jsonData = objectMapper.writeValueAsString(entity);
+                                    n.setStatus(NotificationStatus.NEW);
+                                    n.setData(jsonData);
+                                    n.setText(entity.getText());
+                                    notificationRepo.save(n);
+                                    editMessageText.setText("Mark is added");
+                                } catch (JsonProcessingException e) {
+                                    log.error("JSON deserialization to Entity error: " + e);
+
+                                }
+                            },
+                            () -> log.error("Notification is not found"));
         }
+
         return editMessageText;
     }
 
@@ -143,7 +179,8 @@ public class BotService {
         return sub1.substring(sub1.indexOf("_") + 1);
     }
 
-    private EditMessageText updateEditMessageForRegistration(CallbackQuery callBack, EditMessageText editMessageText) {
+    private EditMessageText updateEditMessageForRegistration(CallbackQuery callBack, EditMessageText
+            editMessageText) {
         String data = callBack.getData();
         Message message = callBack.getMessage();
         if (data.contains("_SET_")) {
@@ -205,8 +242,33 @@ public class BotService {
         return message;
     }
 
-    private SendMessage updateMessageForSettings(SendMessage message) {
+    private SendMessage updateMessageForSettings(SendMessage message, String messageCommand) {
         Map<String, String> mapForKeyboard = new HashMap<>();
+        if (messageCommand != null) {
+            if (!messageCommand.contains(" ")) {
+                message.setText(EmojiParser.parseToUnicode("Wrong command: \"settings for _____ mark 2.234"));
+                return message;
+            }
+            String beforeNotification = messageCommand.substring(messageCommand.indexOf(" ") + 1, messageCommand.length());
+            if (!beforeNotification.contains(" ")) {
+                message.setText(EmojiParser.parseToUnicode("Wrong command: \"settings for _____ mark 2.234"));
+                return message;
+            }
+            String notification = beforeNotification.substring(0, beforeNotification.indexOf(" "));
+            String beforeMark = beforeNotification.substring(beforeNotification.indexOf(" ") + 1, beforeNotification.length());
+            if (!beforeMark.contains(" ")) {
+                message.setText(EmojiParser.parseToUnicode("Wrong command: \"settings for _____ mark 2.234"));
+                return message;
+            }
+            String mark = beforeMark.substring(beforeMark.indexOf(" ") + 1, beforeMark.length());
+
+            mapForKeyboard.put("Add mark: " + mark, "NOTIFICATION_MARKED_" + notification + "-" + mark);
+            mapForKeyboard.put("Escape", " ");
+            message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
+            message.setText("Add mark for notification " + notification);
+            return message;
+        }
+
         Optional<User> user = userRepo.findByChatId(Long.valueOf(message.getChatId()));
         if (user.isEmpty()) {
             message.setText(SMTH_WRONG);
@@ -215,23 +277,26 @@ public class BotService {
 
         List<Notification> notifications = notificationRepo.getUserNotification(user.get().getId());
         if (notifications.isEmpty()) {
-            message.setText(EmojiParser.parseToUnicode("No Available Notifications to delete" + ":confused:"));
+            message.setText(EmojiParser.parseToUnicode("No Available Notifications to set" + ":confused:"));
             return message;
         }
         notifications.forEach(n -> {
                     String buttonName = n.getName();
                     mapForKeyboard.put("Delete: " + buttonName, "NOTIFICATION_DELETE_" + buttonName);
+                    mapForKeyboard.put("Add mark to: " + buttonName, "NOTIFICATION_MARK_" + buttonName);
+
                 }
         );
+
         message.setReplyMarkup(BotUtils.getKeyboard(mapForKeyboard));
-        message.setText(EmojiParser.parseToUnicode("Available Notifications to delete, please make your choice" + ":blush:"));
+        message.setText(EmojiParser.parseToUnicode("Available Notifications to set, please make your choice" + ":blush:"));
         return message;
     }
 
     private SendMessage updateMessageForHelp(SendMessage message) {
         message.setText(EmojiParser.parseToUnicode("Available commands: \n"
                 + String.join("\n", botConfig.getCommands()))
-                + "\n\n Hint: Chose command \\/NOTIFICATION and take your service"+ ":blush:");
+                + "\n\n Hint: Chose command \\/NOTIFICATION and take your service" + ":blush:");
         return message;
     }
 }
